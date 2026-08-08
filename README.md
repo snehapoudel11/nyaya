@@ -1,27 +1,17 @@
-# Nyaya — Bilingual Civic & Legal RAG Assistant
+# Nyaya: Bilingual Civic and Legal RAG Assistant
 
-A retrieval-augmented Q&A assistant over legal/civic documents (e.g. Nepal's
-Constitution, Labor Act, Company Act), answering in **Nepali or English**
-with cited sources.
+![Nyaya demo](demo/image.png)
 
-- **Embeddings:** `embeddinggemma:300m` served locally via **Ollama** (runs fine on 16GB RAM / 2GB VRAM — CPU is enough for a 300M model)
-- **Vector store:** ChromaDB (local, persistent)
-- **Generation:** **Groq API** (fast, free-tier hosted LLM — no local GPU needed for generation)
-- **UI:** Gradio
+Nyaya is a bilingual research assistant for Nepali civic and legal documents. It can answer questions in Nepali or English by searching the documents in its knowledge base, such as the Constitution, Labour Act, or Company Act. Each answer includes the source passages it used.
 
-## 1. Prerequisites
+It uses `google/embeddinggemma-300m` for local embeddings, ChromaDB for document search, Groq for answer generation, and Gradio for the web interface.
+
+## Prerequisites
 
 - Python 3.10+
-- [Ollama](https://ollama.com) installed and running
-- A free [Groq API key](https://console.groq.com)
+- A Groq API key
 
-## 2. Pull the embedding model
-
-```bash
-ollama pull embeddinggemma:300m
-```
-
-## 3. Set up the project
+## Setup
 
 ```bash
 git clone <this repo>
@@ -31,61 +21,49 @@ source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 cp .env.example .env
-# edit .env and paste your GROQ_API_KEY
+# Add your GROQ_API_KEY to .env
 ```
 
-## 4. Add your documents
+## Add documents
 
-Drop `.pdf`, `.docx`, `.txt`, or `.md` files into:
+Place `.pdf`, `.docx`, `.txt`, or `.md` files in `data/raw/`.
 
-```
-data/raw/
-```
-
-## 5. Build the vector index
+## Build the document index
 
 ```bash
 python build_index.py
-# to rebuild from scratch later:
+# Rebuild the index from scratch
 python build_index.py --reset
 ```
 
-## 6. Launch the app
+## Launch the app
 
 ```bash
 python app.py
 ```
 
-Open the local URL Gradio prints (usually `http://127.0.0.1:7860`).
+Open the local URL shown by Gradio, usually `http://127.0.0.1:7860`.
 
 ## Project structure
 
-```
+```text
 nyaya-rag/
-├── data/raw/            # put source documents here
-├── chroma_db/           # auto-created persistent vector store
-├── src/
-│   ├── config.py        # paths, model names, chunk/retrieval settings
-│   ├── loaders.py        # pdf/docx/txt loaders
-│   ├── chunking.py       # recursive text splitter
-│   ├── embeddings.py     # embeddinggemma:300m wrapper (Ollama)
-│   ├── vectorstore.py    # ChromaDB wrapper
-│   ├── llm.py             # Groq generation + grounded system prompt
-│   └── rag_pipeline.py    # orchestrates retrieval + generation
-├── build_index.py        # CLI: ingest + chunk + embed + store
-├── app.py                 # Gradio chat UI
-├── requirements.txt
-└── .env.example
+  data/raw/            source documents
+  chroma_db/           persistent vector store
+  src/
+    config.py          paths and retrieval settings
+    loaders.py         document loaders
+    chunking.py        text splitter
+    embeddings.py      embeddinggemma-300m wrapper
+    vectorstore.py     ChromaDB wrapper
+    llm.py             Groq generation and grounded prompt
+    rag_pipeline.py    retrieval and generation orchestration
+  build_index.py       indexing command
+  app.py               Gradio interface
 ```
 
-## Notes on design choices
+## Notes
 
-- **Query vs. document prefixes**: EmbeddingGemma is trained with task-specific
-  prompt prefixes. `embeddings.py` applies `"task: search result | query: "` to
-  queries and `"title: none | text: "` to document chunks — this measurably
-  improves retrieval quality over embedding raw text.
-- **Grounded generation**: `llm.py`'s system prompt forces the model to answer
-  only from retrieved context and cite `[n]` sources, reducing hallucination —
-  critical for a legal/civic-info use case.
-- **Bilingual by design**: the assistant mirrors the language of the question
-  (Nepali or English) rather than forcing one language.
+- The embedding model uses separate encoders for documents and questions to improve search quality.
+- The answer model is instructed to rely on the retrieved passages and cite them.
+- Rebuild the index whenever you add, remove, or change source documents.

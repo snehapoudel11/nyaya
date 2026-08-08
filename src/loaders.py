@@ -1,3 +1,5 @@
+
+
 """
 Loads raw documents (pdf, docx, txt, md) from a folder and returns
 plain text along with basic metadata (source filename).

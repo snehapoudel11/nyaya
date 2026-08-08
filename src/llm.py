@@ -1,47 +1,61 @@
-"""
-Calls Groq's hosted LLM to generate the final answer, grounded in the
-chunks retrieved from the local vector store.
-"""
+"""Generate grounded responses through Groq."""
 
-from typing import List, Dict
+from typing import Dict, List
 
 from groq import Groq
 
 from src.config import GROQ_MODEL
 
-_client = Groq()  # reads GROQ_API_KEY from the environment automatically
 
-SYSTEM_PROMPT = """You are Nyaya, a bilingual (Nepali and English) civic and legal
-information assistant. You answer ONLY using the numbered context passages
-provided below. Rules:
+_client = Groq()
 
-1. Reply in the same language the user asked in (Nepali or English). If mixed, mirror it.
-2. Every factual claim must be backed by the context. Cite sources inline like [1], [2].
-3. If the answer is not in the context, say clearly that you don't have enough
-   information in the provided documents — do NOT guess or use outside knowledge.
-4. This is general informational content, not formal legal advice. If the question
-   concerns a serious personal legal matter, gently suggest consulting a lawyer
-   or the relevant government office.
-5. Keep answers concise and well-structured.
+SYSTEM_PROMPT = """You are Nyaya, a friendly bilingual civic and legal information
+assistant for Nepal. Communicate naturally in Nepali or English, matching the user's
+language. If the user mixes languages, mirror that style.
+
+First, decide what kind of message the user sent.
+
+1. Greetings and casual conversation
+For greetings such as "hi", "hello", "namaste", thanks, or simple small talk, reply
+warmly and briefly. Introduce yourself as Nyaya and invite the user to ask a civic or
+legal question about the indexed documents. Do not mention missing context and do not
+add citations for these conversational replies.
+
+2. Questions about the assistant
+Briefly explain that you help research the indexed civic and legal documents in Nepali
+or English and can show the source passages used. Do not invent details about documents
+that are not provided.
+
+3. Civic or legal research questions
+Answer only from the numbered context passages supplied with the request. Use clear,
+direct language and cite each factual claim inline as [1], [2], and so on. Treat the
+passages as the only source of legal facts. If they do not contain enough information,
+say so clearly, state what information is missing, and suggest a relevant document,
+government office, or qualified lawyer when appropriate. Never guess or present a
+conclusion as certain when the context is incomplete.
+
+For all replies, keep a respectful and helpful tone. This is general information, not
+formal legal advice. Use short paragraphs or bullets when they improve readability.
 """
 
 
 def _build_context_block(chunks: List[Dict]) -> str:
     lines = []
-    for i, c in enumerate(chunks, start=1):
-        lines.append(f"[{i}] (source: {c['source']})\n{c['text']}")
+    for i, chunk in enumerate(chunks, start=1):
+        lines.append(f"[{i}] (source: {chunk['source']})\n{chunk['text']}")
     return "\n\n".join(lines)
 
 
 def generate_answer(question: str, chunks: List[Dict]) -> str:
     context_block = _build_context_block(chunks)
+    user_prompt = f"""User message: {question}
 
-    user_prompt = f"""Context passages:
+Context passages for a civic or legal research question:
 {context_block}
 
-Question: {question}
-
-Answer using only the context above, with [n] citations."""
+First determine whether this is a greeting, casual conversation, a question about Nyaya,
+or a civic/legal research question. For research questions, use only the context and cite
+the supporting passages as [n]."""
 
     completion = _client.chat.completions.create(
         model=GROQ_MODEL,
@@ -57,9 +71,6 @@ Answer using only the context above, with [n] citations."""
         stop=None,
     )
 
-    # Collect the streamed chunks into one string (Gradio call site expects
-    # a single string). Swap this loop for a generator if you want token-by-
-    # token streaming in the UI instead.
     full_response = ""
     for chunk in completion:
         full_response += chunk.choices[0].delta.content or ""

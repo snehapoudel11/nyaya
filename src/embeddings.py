@@ -2,8 +2,8 @@
 Embedding wrapper for embeddinggemma-300m, loaded directly via
 sentence-transformers and forced onto CPU.
 
-This bypasses Ollama entirely (no server, no GPU auto-detection),
-which sidesteps the CUDA/PTX crash some Windows + old-GPU setups hit.
+It runs locally without an embedding server and is forced onto CPU,
+which sidesteps CUDA/PTX crashes on some Windows and older GPU setups.
 """
 
 from typing import List

@@ -39,7 +39,7 @@ def main():
         print(f"  {doc['source']}: {len(chunks)} chunks")
 
     print(f"Total chunks: {len(all_chunks)}")
-    print("Embedding with embeddinggemma:300m (via Ollama) ...")
+    print("Embedding with embeddinggemma-300m ...")
 
     batch_size = args.batch_size
     for i in range(0, len(all_chunks), batch_size):
