@@ -1,4 +1,11 @@
 import gradio as gr
+import starlette.status as _starlette_status
+
+# Compatibility: some Gradio versions reference
+# `HTTP_422_UNPROCESSABLE_CONTENT` while Starlette uses
+# `HTTP_422_UNPROCESSABLE_ENTITY`. Alias if missing.
+if not hasattr(_starlette_status, "HTTP_422_UNPROCESSABLE_CONTENT"):
+    _starlette_status.HTTP_422_UNPROCESSABLE_CONTENT = _starlette_status.HTTP_422_UNPROCESSABLE_ENTITY
 
 from src.rag_pipeline import RAGPipeline
 from src.vectorstore import VectorStore
@@ -34,17 +41,7 @@ def get_kb_status():
     return f"Knowledge base: **{store.count()}** chunks indexed"
 
 
-with gr.Blocks(
-    title="Nyaya | Civic and Legal Research",
-    theme=gr.themes.Soft(primary_hue="blue", secondary_hue="slate", neutral_hue="slate"),
-    css="""
-    .gradio-container { max-width: 1120px !important; }
-    #hero { margin: 1.5rem 0 0.5rem; }
-    #hero h1 { margin-bottom: 0.35rem; }
-    #kb-status { border: 1px solid var(--border-color-primary); border-radius: 10px; padding: 0.65rem 0.9rem; }
-    #chat { border: 1px solid var(--border-color-primary); border-radius: 12px; overflow: hidden; }
-    """,
-) as demo:
+with gr.Blocks(title="Nyaya | Civic and Legal Research") as demo:
     gr.Markdown(
         """
         # Nyaya
@@ -84,4 +81,13 @@ with gr.Blocks(
     )
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(
+        theme=gr.themes.Soft(primary_hue="blue", secondary_hue="slate", neutral_hue="slate"),
+        css="""
+        .gradio-container { max-width: 1120px !important; }
+        #hero { margin: 1.5rem 0 0.5rem; }
+        #hero h1 { margin-bottom: 0.35rem; }
+        #kb-status { border: 1px solid var(--border-color-primary); border-radius: 10px; padding: 0.65rem 0.9rem; }
+        #chat { border: 1px solid var(--border-color-primary); border-radius: 12px; overflow: hidden; }
+        """,
+    )
